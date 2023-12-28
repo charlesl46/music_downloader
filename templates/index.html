@@ -1,0 +1,35 @@
+<html>
+    <head>
+        <script src="https://cdn.jsdelivr.net/npm/jquery@3.7.1/dist/jquery.min.js"></script>
+        <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/fomantic-ui@2.9.3/dist/semantic.min.css">
+        <script src="https://cdn.jsdelivr.net/npm/fomantic-ui@2.9.3/dist/semantic.min.js"></script>
+    </head>
+    <body>
+        <div style="margin-top: 10px;" class="ui container">
+            <div class="ui segment">
+                <h1 class="ui header">Téléchargement de musique</h1>
+                <a href="/song" id="button_song" class="ui button">Télécharger une chanson</a>
+                <a href="/album" id="button_album" class="ui button">Télécharger un album</a>
+            </div>
+        </div>
+    </body>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
+    <script type="text/javascript" charset="utf-8">
+        var socket = io();
+        socket.on('connect', function() {
+            console.log('Connected')
+        });
+    </script>
+    <script>
+        var button_song = document.getElementById("button_song");
+        var button_album = document.getElementById("button_album");
+
+        button_song.addEventListener("click",()=>{
+            button_song.classList.add("loading");
+        });
+
+        button_album.addEventListener("click",()=>{
+            button_album.classList.add("loading");
+        });
+    </script>
+</html>

@@ -1,0 +1,67 @@
+<html>
+    <head>
+        <script src="https://cdn.jsdelivr.net/npm/jquery@3.7.1/dist/jquery.min.js"></script>
+        <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/fomantic-ui@2.9.3/dist/semantic.min.css">
+        <script src="https://cdn.jsdelivr.net/npm/fomantic-ui@2.9.3/dist/semantic.min.js"></script>
+    </head>
+    <body>
+        <div style="margin-top: 10px;" class="ui container">
+            <div class="ui segment">
+                <h1 class="ui header">Télécharger un album</h1>
+                <div class="ui input">
+                    <input type="text" placeholder="Votre album">
+                </div>
+                <p>Suggestion : <a class="ui button suggestion"></a></p>
+                <button class="ui button download-button">Envoyer</button>
+            </div>
+        </div>
+    </body>
+    <script>
+        function downloadAlbum(title) {
+            $.ajax({
+                url: "/download_album",
+                type: "POST",
+                contentType: "application/json;charset=UTF-8",
+                data: JSON.stringify({ title: title }),
+                dataType: "json",
+                success: function(response) {
+                    console.log(response);
+                },
+                error: function(error) {
+                    console.error(error);
+                }
+            });
+        }
+
+        $("input").keydown(function(){
+            var value = $(this).val().toString();
+            $.ajax({
+                url: "/suggest_album",
+                type: "POST",
+                contentType: "application/json;charset=UTF-8",
+                data: JSON.stringify({ title: value }),
+                dataType: "json",
+                success: function(response) {
+                    if (response.suggestion){
+                        $(".suggestion").text(response.suggestion).show();
+                    }
+                },
+                error: function(error) {
+                    console.error(error);
+                }
+            });
+        });
+
+        $(".suggestion").click(function(){
+            var song = $(this).text().toString();
+            console.log(song);
+            downloadAlbum(song);
+        });
+
+        $(".download-button").click(function(){
+            var song = $("input").val().toString();
+            console.log(song);
+            downloadAlbum(song);
+        });
+    </script>
+</html>

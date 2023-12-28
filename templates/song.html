@@ -1,0 +1,112 @@
+<html>
+    <head>
+        <script src="https://cdn.jsdelivr.net/npm/jquery@3.7.1/dist/jquery.min.js"></script>
+        <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/fomantic-ui@2.9.3/dist/semantic.min.css">
+        <script src="https://cdn.jsdelivr.net/npm/fomantic-ui@2.9.3/dist/semantic.min.js"></script>
+    </head>
+    <body>
+        <div style="margin-top: 10px;" class="ui container">
+            <div class="ui segment">
+                <h1 class="ui header">Télécharger une chanson</h1>
+                <div class="ui massive fluid search">
+                    <div class="ui icon input">
+                      <input class="prompt" type="text" placeholder="Rechercher une chanson...">
+                      <i class="search icon"></i>
+                    </div>
+                    <div class="results transition"></div>
+                </div>
+                <div class="ui blue indeterminate progress">
+                    <div class="bar">
+                        <div id="progress_text" class="progress"></div>
+                    </div>
+                </div>
+                <button class="ui button success">Télécharger</button>
+            </div>
+        </div>
+    </body>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
+    <script type="text/javascript" charset="utf-8">
+        var socket = io();
+
+        socket.on('download_progress', function(data) {
+            console.log('Download Progress:', data.progress);
+            $("#progress_text").text(data.progress);
+        });
+
+        $(".button").click(function(){
+            var button = $(this);
+            var output_path = button.attr("id");
+            window.location = "/download/" + output_path;
+        });
+
+        document.addEventListener("DOMContentLoaded",()=>{
+            $(".progress").hide();
+            $(".button").hide();
+        })
+
+        function downloadSong(title) {
+            $(".results").hide();
+            $(".progress").show();
+            $("#progress_text").text("Téléchargement démarré");
+            $.ajax({
+                url: "/download_song",
+                type: "POST",
+                contentType: "application/json;charset=UTF-8",
+                data: JSON.stringify({ title: title }),
+                dataType: "json",
+                success: function(response) {
+                    $(".progress").hide();
+                    $.toast({
+                        displayTime: 10000,
+                        title: 'Téléchargement terminé',
+                        message: response.title_downloaded
+                    });
+                    $(".button").show();
+                    $(".button").attr("id",response.output_path);
+                },
+                error: function(error) {
+                    console.error(error);
+                }
+            });
+        }
+
+        $("input").keyup(function(){
+            var value = $(this).val().toString();
+            if (value == ""){
+                $(".results").removeClass("visible");
+            }
+            else{
+                $(".results").addClass("visible");
+                $.ajax({
+                    url: "/suggest_song",
+                    type: "POST",
+                    contentType: "application/json;charset=UTF-8",
+                    data: JSON.stringify({ title: value }),
+                    dataType: "json",
+                    success: function(response) {
+                        if (response.suggestion){
+                            $(".results").html(`<div class="result result-link">${response.suggestion}</div>`);
+                        }
+                    },
+                    error: function(error) {
+                        console.error(error);
+                    }
+                });
+            }
+        });
+
+        $(".results").on("click", ".result-link", function(){
+            var song = $(this).text().toString();
+            console.log(song);
+            downloadSong(song);
+        });
+
+        $(".prompt").keydown(function(event){
+            if (event.key === "Enter"){
+                var song = $(this).val().toString();
+                console.log(song);
+                downloadSong(song);
+            }
+        });
+    </script>
+</html>
