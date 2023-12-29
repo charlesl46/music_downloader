@@ -84,7 +84,7 @@ def suggest_song():
         else:
             print(f"found on deezer")
             title,artist,cover = search_title_on_deezer(song)
-        return jsonify({"suggestion" : f"{title} - {artist}"})
+        return jsonify({"suggestion" : f"{title} - {artist}","cover_path" : cover})
     except:
         return jsonify({"error" : "Couldn't find any suggestion"})
     

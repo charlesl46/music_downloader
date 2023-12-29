@@ -1,0 +1,6 @@
+requests
+flask
+youtube-search-python
+yt_dlp
+slugify
+peewee

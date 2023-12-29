@@ -23,7 +23,7 @@
                     </div>
                     <div class="results transition"></div>
                 </div>
-                <div class="ui blue indeterminate progress">
+                <div class="ui blue indeterminate large progress">
                     <div class="bar">
                         <div id="progress_text" class="progress"></div>
                     </div>
@@ -87,7 +87,7 @@
                     dataType: "json",
                     success: function(response) {
                         if (response.suggestion){
-                            $(".results").html(`<div class="result result-link">${response.suggestion}</div>`);
+                            $(".results").html(`<div class="result result-link"> <img class="ui small image" src="${response.cover_path}"> ${response.suggestion}</div>`);
                         }
                     },
                     error: function(error) {
