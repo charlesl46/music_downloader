@@ -17,8 +17,8 @@ Then head over to [your localhost](http://127.0.0.1:5000/) and start using the p
 
 To add : 
 
-- [] add a parameters section being saved in db to control wether to set metadata or not
-- [] add verbosity on download frontend
-- [] add parallel downloading and download queue
+- [ ] add a parameters section being saved in db to control wether to set metadata or not
+- [ ] add verbosity on download frontend
+- [ ] add parallel downloading and download queue
 
 Enjoy!
