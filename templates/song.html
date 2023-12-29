@@ -5,12 +5,20 @@
         <script src="https://cdn.jsdelivr.net/npm/fomantic-ui@2.9.3/dist/semantic.min.js"></script>
     </head>
     <body>
+        <div class="ui left fixed vertical menu">
+            <div class="item">
+                <img class="ui small image" src="{{ url_for('static', filename='img/logo.png') }}">
+            </div>
+            <a href="/song" class="item">Download a song</a>
+            <a href="/album" class="item">Download an album</a>
+            <a href="/history" class="item">History</a>
+        </div>
         <div style="margin-top: 10px;" class="ui container">
             <div class="ui segment">
-                <h1 class="ui header">Télécharger une chanson</h1>
+                <h1 class="ui header">Download a song</h1>
                 <div class="ui massive fluid search">
                     <div class="ui icon input">
-                      <input class="prompt" type="text" placeholder="Rechercher une chanson...">
+                      <input class="prompt" type="text" placeholder="Ex : Thriller by MJ">
                       <i class="search icon"></i>
                     </div>
                     <div class="results transition"></div>
@@ -20,7 +28,6 @@
                         <div id="progress_text" class="progress"></div>
                     </div>
                 </div>
-                <button class="ui button success">Télécharger</button>
             </div>
         </div>
     </body>
@@ -33,19 +40,13 @@
             $("#progress_text").text(data.progress);
         });
 
-        $(".button").click(function(){
-            var button = $(this);
-            var output_path = button.attr("id");
-            window.location = "/download/" + output_path;
-        });
-
         document.addEventListener("DOMContentLoaded",()=>{
             $(".progress").hide();
-            $(".button").hide();
         })
 
         function downloadSong(title) {
-            $(".results").hide();
+            $(".results").removeClass("visible");
+            $(".search").hide();
             $(".progress").show();
             $("#progress_text").text("Téléchargement démarré");
             $.ajax({
@@ -58,11 +59,12 @@
                     $(".progress").hide();
                     $.toast({
                         displayTime: 10000,
+                        showImage : response.cover_path,
+                        classImage : 'tiny',
                         title: 'Téléchargement terminé',
                         message: response.title_downloaded
                     });
-                    $(".button").show();
-                    $(".button").attr("id",response.output_path);
+                    $(".search").show();
                 },
                 error: function(error) {
                     console.error(error);

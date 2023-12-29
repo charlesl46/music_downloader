@@ -1,41 +1,22 @@
-from flask import Flask,render_template,request,jsonify,send_file
-import requests
+from flask import Flask,render_template,request,jsonify,redirect
+from datetime import datetime 
 import slugify
-import configparser
+from operator import attrgetter
 import yt_dlp
-from youtubesearchpython import VideosSearch
 from flask_socketio import SocketIO
+from utils.database import db,Song
+from utils.search import search_title_on_deezer,search_youtube,album_detail_deezer
 
 app = Flask(__name__)
 socketio = SocketIO(app)
 
-config = configparser.ConfigParser()
-config.read("config.ini")
-api_key = config["API"]['api_key']
-headers = {
-            "X-RapidAPI-Key": api_key,
-            "X-RapidAPI-Host": "deezerdevs-deezer.p.rapidapi.com"
-}
+db.connect()
+if not db.table_exists("song"):
+    db.create_tables([Song])
 
 @socketio.on('connect')
 def handle_connect():
     print('Client socketio connected')
-
-def search_on_deezer(query,album=False):
-    url = "https://deezerdevs-deezer.p.rapidapi.com/search"
-    querystring = {"q" : query}
-    response = requests.get(url,params=querystring,headers=headers)
-    json = response.json().get("data")[0]
-    artist = json.get("artist")
-    if album:
-        return (json.get('album').get('id'),artist.get('name'))
-    else:
-        return (json.get("title"),artist.get('name'))
-
-def search_youtube(title,artist):
-    videosSearch = VideosSearch(f"{title} - {artist}",limit=1)
-    res = videosSearch.result().get("result")[0]
-    return res.get("link")
 
 def download_youtube_video(url,title,artist):
     ydl_opts = {
@@ -60,32 +41,32 @@ def song():
 def album():
     return render_template("album.html")
 
-@app.route("/test")
-def test():
-    return send_file("downloader.zip",as_attachment=True)
-
-@app.route("/download/<path:filename>", methods=["GET"])
-def download_file(filename):
-    # Assurez-vous que filename est sécurisé pour éviter des problèmes de sécurité
-    # Vous pouvez également spécifier le dossier dans lequel les fichiers sont stockés
-    file_path = filename
-
-    # Utilisez send_file pour envoyer le fichier en tant que téléchargement
-    return send_file(file_path, as_attachment=True)
+@app.route("/history")
+def history():
+    history = Song.select().where(Song.downloaded == True).order_by(Song.downloaded_on.desc())
+    return render_template("history.html",history=history)
 
 @app.route("/download_song",methods=["POST"])
 def download_song():
     try:
         data : dict = request.get_json()
         song = data.get("title")
-        title,artist = search_on_deezer(song)
-        socketio.emit('download_progress', {'progress': 'Informations sur le titre récupérées'}, namespace='/')
+        socketio.emit('download_progress', {'progress': 'Récupération des informations sur le titre'}, namespace='/')
+        title,artist,cover = search_title_on_deezer(song)
+        song_object,_ = Song.get_or_create(title=title,artist_name=artist)
+        song_object.cover_path = cover
+        song_object.save()
+        socketio.emit('download_progress', {'progress': 'Recherche youtube'}, namespace='/')
         url = search_youtube(title,artist)
-        socketio.emit('download_progress', {'progress': 'Lien youtube récupéré'}, namespace='/')
+        song_object.url = url
+        song_object.save()
+        socketio.emit('download_progress', {'progress': 'Téléchargement du contenu'}, namespace='/')
         output_path = download_youtube_video(url,title,artist)
-        socketio.emit('download_progress', {'progress': 'Contenu téléchargé'}, namespace='/')
-        print(f"Found title for {song} : {title} - {artist}")
-        return jsonify({"status" : "200","title_downloaded" : f"{title} - {artist}","output_path" : output_path})
+        song_object.filepath = output_path
+        song_object.downloaded = True
+        song_object.downloaded_on = datetime.now()
+        song_object.save()
+        return jsonify({"status" : "200","title_downloaded" : f"{title} - {artist}","cover_path" : cover})
     except:
         print("An error occured")
         return jsonify({"status" : "500"})
@@ -95,8 +76,25 @@ def suggest_song():
     try:
         data : dict = request.get_json()
         song = data.get("title")
-        title,artist = search_on_deezer(song)
+        object_in_db = Song.get_or_none(title=song)
+        if object_in_db:
+            print(f"found in db")
+            title = object_in_db.title
+            artist = object_in_db.artist_name
+        else:
+            print(f"found on deezer")
+            title,artist,cover = search_title_on_deezer(song)
         return jsonify({"suggestion" : f"{title} - {artist}"})
+    except:
+        return jsonify({"error" : "Couldn't find any suggestion"})
+    
+@app.route("/suggest_album",methods=["POST"])
+def suggest_album():
+    try:
+        data : dict = request.get_json()
+        song = data.get("title")
+        _,album_title,artist,_ = search_title_on_deezer(song,album=True)
+        return jsonify({"suggestion" : f"{album_title} - {artist}"})
     except:
         return jsonify({"error" : "Couldn't find any suggestion"})
 
@@ -104,26 +102,33 @@ def suggest_song():
 def download_album():
     data : dict = request.get_json()
     album = data.get("title")
-    album_id,artist = search_on_deezer(album,True)
+    album_id,album_title,artist,cover = search_title_on_deezer(album,True)
     url = f"https://deezerdevs-deezer.p.rapidapi.com/album/{album_id}"
-    response = requests.get(url,headers = headers)
-    json : dict = response.json()
-    title = json.get("title")
-    print(f"Found album {title}")
-    tracks = json.get("tracks").get("data")
-    tracks_titles = []
-    for track in tracks:
+    title,tracks = album_detail_deezer(album_id)
+    for i,track in enumerate(tracks):
         try:
+            socketio.emit('download_progress', {'progress': f'Downloading {i+1}/{len(tracks)} - {track.get("title")}'}, namespace='/')
             url = search_youtube(track.get("title"),artist)
+            song_object,_ = Song.get_or_create(title=track.get("title"),artist_name=artist)
+            song_object.cover_path = cover
+            song_object.url = url
             output_path = download_youtube_video(url,track.get("title"),artist)
+            song_object.filepath = output_path
+            song_object.downloaded = True
+            song_object.downloaded_on = datetime.now()
+            song_object.save()
         except:
             print(f"Could not download {track.get('title')}")
-    return jsonify({"status" : "200"})
+    socketio.emit('download_progress', {'progress': f'Downloaded all album {album_title}'}, namespace='/')
+    return jsonify({"status" : "200","title_downloaded" : f"{album_title} - {artist}","cover_path" : cover})
 
 
 @app.route("/")
 def index():
-    return render_template("index.html")
+    return redirect("song")
 
 if __name__ == "__main__":
-    socketio.run(app,debug=True)
+    try:
+        socketio.run(app,debug=True)
+    except KeyboardInterrupt:
+        db.close()

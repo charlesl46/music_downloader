@@ -5,19 +5,50 @@
         <script src="https://cdn.jsdelivr.net/npm/fomantic-ui@2.9.3/dist/semantic.min.js"></script>
     </head>
     <body>
+        <div class="ui left fixed vertical menu">
+            <div class="item">
+                <img class="ui small image" src="{{ url_for('static', filename='img/logo.png') }}">
+            </div>
+            <a href="/song" class="item">Download a song</a>
+            <a href="/album" class="item">Download an album</a>
+            <a href="/history" class="item">History</a>
+        </div>
         <div style="margin-top: 10px;" class="ui container">
             <div class="ui segment">
-                <h1 class="ui header">Télécharger un album</h1>
-                <div class="ui input">
-                    <input type="text" placeholder="Votre album">
+                <h1 class="ui header">Download an album</h1>
+                <div class="ui massive fluid search">
+                    <div class="ui icon input">
+                      <input class="prompt" type="text" placeholder="Ex : Return to forever">
+                      <i class="search icon"></i>
+                    </div>
+                    <div class="results transition"></div>
                 </div>
-                <p>Suggestion : <a class="ui button suggestion"></a></p>
-                <button class="ui button download-button">Envoyer</button>
+                <div class="ui blue indeterminate progress">
+                    <div class="bar">
+                        <div id="progress_text" class="progress"></div>
+                    </div>
+                </div>
             </div>
         </div>
     </body>
-    <script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
+    <script type="text/javascript" charset="utf-8">
+        var socket = io();
+
+        socket.on('download_progress', function(data) {
+            console.log('Download Progress:', data.progress);
+            $("#progress_text").text(data.progress);
+        });
+
+        document.addEventListener("DOMContentLoaded",()=>{
+            $(".progress").hide();
+        })
+
         function downloadAlbum(title) {
+            $(".results").removeClass("visible");
+            $(".search").hide();
+            $(".progress").show();
+            $("#progress_text").text("Download started");
             $.ajax({
                 url: "/download_album",
                 type: "POST",
@@ -25,7 +56,15 @@
                 data: JSON.stringify({ title: title }),
                 dataType: "json",
                 success: function(response) {
-                    console.log(response);
+                    $(".progress").hide();
+                    $.toast({
+                        displayTime: 10000,
+                        showImage : response.cover_path,
+                        classImage : 'tiny',
+                        title: 'Download complete',
+                        message: response.title_downloaded
+                    });
+                    $(".search").show();
                 },
                 error: function(error) {
                     console.error(error);
@@ -33,29 +72,35 @@
             });
         }
 
-        $("input").keydown(function(){
+        $("input").keyup(function(){
             var value = $(this).val().toString();
-            $.ajax({
-                url: "/suggest_album",
-                type: "POST",
-                contentType: "application/json;charset=UTF-8",
-                data: JSON.stringify({ title: value }),
-                dataType: "json",
-                success: function(response) {
-                    if (response.suggestion){
-                        $(".suggestion").text(response.suggestion).show();
+            if (value == ""){
+                $(".results").removeClass("visible");
+            }
+            else{
+                $(".results").addClass("visible");
+                $.ajax({
+                    url: "/suggest_album",
+                    type: "POST",
+                    contentType: "application/json;charset=UTF-8",
+                    data: JSON.stringify({ title: value }),
+                    dataType: "json",
+                    success: function(response) {
+                        if (response.suggestion){
+                            $(".results").html(`<div class="result result-link">${response.suggestion}</div>`);
+                        }
+                    },
+                    error: function(error) {
+                        console.error(error);
                     }
-                },
-                error: function(error) {
-                    console.error(error);
-                }
-            });
+                });
+            }
         });
 
-        $(".suggestion").click(function(){
-            var song = $(this).text().toString();
-            console.log(song);
-            downloadAlbum(song);
+        $(".results").on("click", ".result-link", function(){
+            var album = $(this).text().toString();
+            console.log(album);
+            downloadAlbum(album);
         });
 
         $(".download-button").click(function(){
