@@ -2,3 +2,4 @@ config.ini
 output
 utils/database.db
 *test.py
+rundebug.sh

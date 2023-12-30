@@ -5,14 +5,7 @@
         <script src="https://cdn.jsdelivr.net/npm/fomantic-ui@2.9.3/dist/semantic.min.js"></script>
     </head>
     <body>
-        <div class="ui left fixed vertical menu">
-            <div class="item">
-                <img class="ui small image" src="{{ url_for('static', filename='img/logo.png') }}">
-            </div>
-            <a href="/song" class="item">Download a song</a>
-            <a href="/album" class="item">Download an album</a>
-            <a href="/history" class="item">History</a>
-        </div>
+        {% include 'nav.html' %}
         <div style="margin-top: 10px;" class="ui container">
             <div class="ui segment">
                 <h1 class="ui header">Download an album</h1>

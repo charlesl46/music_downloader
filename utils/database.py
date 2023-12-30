@@ -14,3 +14,11 @@ class Song(Model):
 
     class Meta:
         database = db
+
+class Settings(Model):
+    id = AutoField(primary_key=True)
+    set_metadata = BooleanField(default=True)
+    show_history = BooleanField(default=True)
+
+    class Meta:
+        database = db

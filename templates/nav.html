@@ -1,0 +1,23 @@
+<div class="ui left fixed vertical labeled icon menu">
+    <div class="item">
+      <img class="ui small image" src="{{ url_for('static', filename='img/logo.png') }}">
+    </div>
+    <a href="/song" class="item">
+        <i class="music icon"></i>
+        Download a song
+    </a>
+    <a href="/album" class="item">
+        <i class="record vinyl icon"></i>
+        Download an album
+    </a>
+    {% if settings.show_history %}
+    <a href="/history" class="item">
+        <i class="history icon"></i>
+        History
+    </a>
+    {% endif %}
+    <a href="/settings" class="item">
+        <i class="cog icon"></i>
+        Settings
+    </a>
+</div>

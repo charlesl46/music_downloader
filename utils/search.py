@@ -16,10 +16,15 @@ def search_title_on_deezer(query,album=False):
     json = response.json().get("data")[0]
     artist = json.get("artist")
     cover = json.get("album").get("cover")
+    album_id = json.get("album").get("id")
+    url = f"https://deezerdevs-deezer.p.rapidapi.com/album/{album_id}"
+    response = requests.get(url,headers = headers)
+    json_album : dict = response.json()
+    data = {"album_title" : json_album.get("title"),"release_date" : json_album.get("release_date"),"explicit_lyrics" : json.get("explicit_lyrics")}
     if album:
-        return (json.get('album').get('id'),json.get('album').get("title"),artist.get('name'),cover)
+        return (json.get('album').get('id'),json.get('album').get("title"),artist.get('name'),cover,data.get("release_date"))
     else:
-        return (json.get("title"),artist.get('name'),cover)
+        return (json.get("title"),artist.get('name'),cover,data)
     
 def album_detail_deezer(album_id):
     url = f"https://deezerdevs-deezer.p.rapidapi.com/album/{album_id}"

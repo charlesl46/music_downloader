@@ -5,14 +5,7 @@
         <script src="https://cdn.jsdelivr.net/npm/fomantic-ui@2.9.3/dist/semantic.min.js"></script>
     </head>
     <body>
-        <div class="ui left fixed vertical menu">
-            <div class="item">
-                <img class="ui small image" src="{{ url_for('static', filename='img/logo.png') }}">
-            </div>
-            <a href="/song" class="item">Download a song</a>
-            <a href="/album" class="item">Download an album</a>
-            <a href="/history" class="item">History</a>
-        </div>
+        {% include 'nav.html' %}
         <div style="margin-top: 10px;" class="ui container">
             <div class="ui segment">
                 <h1 class="ui header">Download a song</h1>
@@ -29,6 +22,33 @@
                     </div>
                 </div>
             </div>
+            <div class="ui segment">
+                <h1 class="ui header">Your download</h1>
+                <div class="ui two column very relaxed grid">
+                    <div class="column">
+                        <div class="ui raised card">
+                            <div class="image">
+                              <img id="album_image" src="">
+                            </div>
+                            <div class="content">
+                              <div id="song_title" class="header"></div>
+                            </div>
+                            <div class="extra content">
+                              <span id="release_date" class="right floated">
+                              </span>
+                              <span id="explicit">
+                                <i class="exclamation icon"></i>
+                                Explicit lyrics
+                              </span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="column">
+                        <iframe id="youtube-iframe" frameborder="0" allowfullscreen></iframe>
+                    </div>
+                </div>
+                <div class="ui vertical divider"></div>
+            </div>
         </div>
     </body>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
@@ -40,8 +60,34 @@
             $("#progress_text").text(data.progress);
         });
 
+        socket.on('title-data',function(data){
+            $(".card").show();
+            var release_date = data.release_date;
+            var cover = data.cover;
+            var title = data.title;
+            var artist = data.artist;
+            var explicit = data.explicit_lyrics;
+            $(".card #release_date").text(release_date);
+            $(".card #album_image").attr("src",cover);
+            $(".card #song_title").text(`${title} - ${artist}`);
+            if (explicit){
+                $(".card #explicit").show()
+            }else{
+                $(".card #explicit").hide()
+            }
+        });
+
+        socket.on("youtube-url",function(data){
+            var url = data.url;
+            var embed_url = `https://www.youtube.com/embed/${url}`;
+            $("iframe").attr("src",embed_url);
+            $("iframe").show();
+        });
+
         document.addEventListener("DOMContentLoaded",()=>{
             $(".progress").hide();
+            $("iframe").hide();
+            $(".card").hide();
         })
 
         function downloadSong(title) {
@@ -87,6 +133,7 @@
                     dataType: "json",
                     success: function(response) {
                         if (response.suggestion){
+                            console.log(response.suggestion);
                             $(".results").html(`<div class="result result-link"> <img class="ui small image" src="${response.cover_path}"> ${response.suggestion}</div>`);
                         }
                     },

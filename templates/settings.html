@@ -1,0 +1,59 @@
+<html>
+    <head>
+        <script src="https://cdn.jsdelivr.net/npm/jquery@3.7.1/dist/jquery.min.js"></script>
+        <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/fomantic-ui@2.9.3/dist/semantic.min.css">
+        <script src="https://cdn.jsdelivr.net/npm/fomantic-ui@2.9.3/dist/semantic.min.js"></script>
+    </head>
+    <body>
+        {% include 'nav.html' %}
+        <div style="margin-top: 10px;" class="ui container">
+            <div class="ui segment">
+                <h1 class="ui header">Settings</h1>
+                <div class="ui form">
+                    <div class="inline field">
+                        <div class="ui toggle checkbox">
+                            {% if settings.set_metadata %}
+                            <input id="set_metadata" type="checkbox" tabindex="0" checked>
+                            {% else %}
+                            <input id="set_metadata" type="checkbox" tabindex="0">
+                            {% endif %}
+                            <label>Set automatic metadata on files (title, artist name, album name and release date)</label>
+                        </div>
+                    </div>
+
+                    <div class="inline field">
+                        <div class="ui toggle checkbox">
+                            {% if settings.show_history %}
+                            <input id="show_history" type="checkbox" tabindex="0" checked>
+                            {% else %}
+                            <input id="show_history" type="checkbox" tabindex="0">
+                            {% endif %}
+                            <label>Show downloads history</label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </body>
+    <script>
+        $("input").click(function(){
+            var id = $(this).attr("id");
+            $.ajax({
+                url : "/toggle_settings",
+                data : JSON.stringify({"setting" : id,"state" : $(this).prop("checked")}),
+                type : "POST",
+                contentType: "application/json;charset=UTF-8",
+                success : function(response){
+                    $.toast({
+                        position: 'top right',
+                        message: response.sentence
+                    });
+                },
+                error : function(response){
+
+                }
+            });
+        });
+
+    </script>
+</html>
